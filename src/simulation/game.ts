@@ -1,22 +1,32 @@
 import { createLevel, levelInfo, listLevels, waveDifficultyScore, type LevelSummary } from "./level";
 import { sameKey } from "./words";
-import type { EnemyState, GameState, InputFeedback, WaveDefinition } from "./types";
+import type { DifficultyMode, EnemyState, GameState, InputFeedback, WaveDefinition } from "./types";
 const SPEED = { walker: 1.45, runner: 2.35, brute: 1.05, boss: 0.72 };
+export const DIFFICULTIES: Record<DifficultyMode, { label: string; speedMultiplier: number }> = {
+  easy: { label: "Facile", speedMultiplier: .78 },
+  normal: { label: "Normal", speedMultiplier: 1 },
+  hard: { label: "Difficile", speedMultiplier: 1.22 },
+  nightmare: { label: "Cauchemar", speedMultiplier: 1.45 },
+};
 const STORAGE_KEY = "typo-city-best-score";
 type WaveSource = WaveDefinition[] | ((seed: number, levelId: string) => WaveDefinition[]);
 export interface WaveMetrics { index: number; label: string; startedAtMs: number; endedAtMs?: number; totalKeys: number; correctKeys: number; errors: number; defeated: number; damage: number; }
 export interface WaveDebugInfo { index: number; label: string; difficulty: number; }
 export interface StartOptions { score?: number; lives?: number; elapsedMs?: number; totalKeys?: number; correctKeys?: number; maxCombo?: number }
-export function createInitialState(level = levelInfo()): GameState {
-  return { phase: "menu", lives: 5, score: 0, combo: 0, maxCombo: 0, enemies: [], waveIndex: -1, waveLabel: "", levelId: level.id, levelTitle: level.title, levelTheme: level.theme, levelEnvironment: level.environment, elapsedMs: 0, totalKeys: 0, correctKeys: 0, errorFlash: 0 };
+export function createInitialState(level = levelInfo(), difficulty: DifficultyMode = "normal"): GameState {
+  return { phase: "menu", lives: 5, score: 0, combo: 0, maxCombo: 0, difficulty, enemies: [], waveIndex: -1, waveLabel: "", levelId: level.id, levelTitle: level.title, levelTheme: level.theme, levelEnvironment: level.environment, elapsedMs: 0, totalKeys: 0, correctKeys: 0, errorFlash: 0 };
 }
 export class TypingGame {
   state = createInitialState(); private enemyCounter = 0; private waveDelay = 0; private waves: WaveDefinition[] = []; private seed = createRandomSeed(); private waveMetrics: WaveMetrics[] = []; private currentWaveMetrics?: WaveMetrics; private inputFeedback?: InputFeedback;
-  constructor(private readonly waveSource: WaveSource = (seed, levelId) => createLevel({ seed, levelId }), private levelId = listLevels()[0].id) {}
-  selectLevel(levelId: string): void { this.levelId = levelId; this.waves = []; this.state = createInitialState(this.selectedLevel()); this.inputFeedback = undefined; this.resetMetrics(); }
+  constructor(private readonly waveSource: WaveSource = (seed, levelId) => createLevel({ seed, levelId }), private levelId = listLevels()[0].id, private difficulty: DifficultyMode = "normal") {}
+  selectLevel(levelId: string): void { this.levelId = levelId; this.waves = []; this.state = createInitialState(this.selectedLevel(), this.difficulty); this.inputFeedback = undefined; this.resetMetrics(); }
+  setDifficulty(difficulty: DifficultyMode): void { this.difficulty = difficulty; this.state.difficulty = difficulty; }
+  selectedDifficulty(): DifficultyMode { return this.difficulty; }
+  difficultyInfo(): typeof DIFFICULTIES[DifficultyMode] { return DIFFICULTIES[this.difficulty]; }
+  availableDifficulties(): Array<{ id: DifficultyMode; label: string; speedMultiplier: number }> { return (Object.entries(DIFFICULTIES) as Array<[DifficultyMode, typeof DIFFICULTIES[DifficultyMode]]>).map(([id, item]) => ({ id, ...item })); }
   start(options: StartOptions = {}): void {
     this.waves = this.resolveWaves();
-    const initial = createInitialState(this.selectedLevel());
+    const initial = createInitialState(this.selectedLevel(), this.difficulty);
     this.state = { ...initial, phase: "playing", score: options.score ?? initial.score, lives: options.lives ?? initial.lives, maxCombo: options.maxCombo ?? initial.maxCombo, elapsedMs: options.elapsedMs ?? initial.elapsedMs, totalKeys: options.totalKeys ?? initial.totalKeys, correctKeys: options.correctKeys ?? initial.correctKeys };
     this.enemyCounter = 0; this.waveDelay = 550; this.inputFeedback = undefined; this.resetMetrics();
   }
@@ -24,7 +34,8 @@ export class TypingGame {
   update(deltaMs: number): void {
     const s = this.state; if (s.phase !== "playing") return; s.elapsedMs += deltaMs; s.errorFlash = Math.max(0, s.errorFlash - deltaMs);
     if (!s.enemies.length) { this.closeCurrentWave(); this.waveDelay -= deltaMs; if (this.waveDelay <= 0) this.spawnNextWave(); return; }
-    for (const enemy of s.enemies) { if (enemy.status === "defeated") continue; enemy.distance -= SPEED[enemy.archetype] * deltaMs / 1000; if (enemy.distance <= 0) this.enemyAttack(enemy); }
+    const speedMultiplier = DIFFICULTIES[s.difficulty].speedMultiplier;
+    for (const enemy of s.enemies) { if (enemy.status === "defeated") continue; enemy.distance -= SPEED[enemy.archetype] * speedMultiplier * deltaMs / 1000; if (enemy.distance <= 0) this.enemyAttack(enemy); }
     s.enemies = s.enemies.filter((enemy) => enemy.status !== "defeated");
   }
   type(key: string): "hit" | "error" | "kill" | "ignored" {
@@ -60,7 +71,7 @@ export class TypingGame {
   private closeCurrentWave(): void { if (!this.currentWaveMetrics || this.currentWaveMetrics.endedAtMs !== undefined) return; this.currentWaveMetrics.endedAtMs = this.state.elapsedMs; this.waveMetrics.push(this.currentWaveMetrics); this.currentWaveMetrics = undefined; }
   private resetMetrics(): void { this.waveMetrics = []; this.currentWaveMetrics = undefined; }
   private ensureDebugWaves(): void { if (!this.waves.length) this.waves = this.resolveWaves(); }
-  private ensureDebugPlaying(): void { this.ensureDebugWaves(); if (this.state.phase !== "playing" && this.state.phase !== "paused") this.state = { ...createInitialState(this.selectedLevel()), phase: "playing" }; else this.state.phase = "playing"; }
+  private ensureDebugPlaying(): void { this.ensureDebugWaves(); if (this.state.phase !== "playing" && this.state.phase !== "paused") this.state = { ...createInitialState(this.selectedLevel(), this.difficulty), phase: "playing" }; else this.state.phase = "playing"; }
   private resolveWaves(): WaveDefinition[] { return typeof this.waveSource === "function" ? this.waveSource(this.seed, this.levelId) : this.waveSource; }
   private finish(phase: "victory" | "defeat"): void { this.closeCurrentWave(); this.state.phase = phase; const best = Math.max(this.bestScore(), this.state.score); localStorage.setItem(STORAGE_KEY, String(best)); }
 }

@@ -18,7 +18,8 @@ const awardedBonusLevelIds = new Set<string>();
 function menu(): void {
   const levels = game.availableLevels();
   const levelButtons = levels.map((level, index) => `<button class="level-button" data-level="${level.id}"><span>Niveau ${index + 1}</span>${escapeHtml(level.title)}<small>${escapeHtml(level.subtitle)}</small></button>`).join("");
-  panel.innerHTML = `<p class="eyebrow">UNE NUIT. UN CLAVIER.</p><h1>TYPO <span>CITY</span></h1><p class="lead">Mode arcade: ${levels.length} niveaux enchaînés.<br>La ville a perdu sa voix. Il ne reste que vos mots.</p><div class="menu-actions"><button id="arcade-start" class="primary-action">COMMENCER LA RUN</button><button id="level-toggle" class="secondary-action" aria-expanded="false">SÉLECTION DE NIVEAU</button></div><div class="level-select hidden" id="level-select">${levelButtons}</div><p class="record">RECORD LOCAL <b>${String(game.bestScore()).padStart(6, "0")}</b></p><p class="keys">Tapez les mots pour repousser les créatures · Échap pause · F2 mute · F3 volume · F10 debug</p>`;
+  const difficultyButtons = game.availableDifficulties().map((item) => `<button class="difficulty-button ${item.id === game.selectedDifficulty() ? "active" : ""}" data-difficulty="${item.id}"><span>${escapeHtml(item.label)}</span><small>vitesse ×${item.speedMultiplier.toFixed(2)}</small></button>`).join("");
+  panel.innerHTML = `<p class="eyebrow">UNE NUIT. UN CLAVIER.</p><h1>TYPO <span>CITY</span></h1><p class="lead">Mode arcade: ${levels.length} niveaux enchaînés.<br>La ville a perdu sa voix. Il ne reste que vos mots.</p><div class="difficulty-select" id="difficulty-select">${difficultyButtons}</div><div class="menu-actions"><button id="arcade-start" class="primary-action">COMMENCER LA RUN</button><button id="level-toggle" class="secondary-action" aria-expanded="false">SÉLECTION DE NIVEAU</button></div><div class="level-select hidden" id="level-select">${levelButtons}</div><p class="record">RECORD LOCAL <b>${String(game.bestScore()).padStart(6, "0")}</b></p><p class="keys">Tapez les mots pour repousser les créatures · Échap pause · F2 mute · F3 volume · F10 debug</p>`;
   overlay.classList.remove("hidden");
   document.querySelector("#arcade-start")!.addEventListener("click", () => start(levels[0]?.id));
   document.querySelector("#level-toggle")!.addEventListener("click", () => {
@@ -26,6 +27,11 @@ function menu(): void {
     const hidden = select.classList.toggle("hidden");
     toggle.setAttribute("aria-expanded", String(!hidden));
   });
+  document.querySelectorAll<HTMLButtonElement>(".difficulty-button").forEach((button) => button.addEventListener("click", () => {
+    const difficulty = button.dataset.difficulty;
+    if (difficulty === "easy" || difficulty === "normal" || difficulty === "hard" || difficulty === "nightmare") game.setDifficulty(difficulty);
+    document.querySelectorAll(".difficulty-button").forEach((item) => item.classList.toggle("active", item === button));
+  }));
   document.querySelectorAll<HTMLButtonElement>(".level-button").forEach((button) => button.addEventListener("click", () => start(button.dataset.level)));
 }
 function start(levelId: string | undefined = game.selectedLevel().id, options: StartOptions = {}, continueRun = false): void {
@@ -56,7 +62,7 @@ function nextLevel(): ReturnType<TypingGame["selectedLevel"]> | undefined {
   const index = levels.findIndex((level) => level.id === game.selectedLevel().id);
   return index >= 0 ? levels[index + 1] : undefined;
 }
-function renderHud(): void { const s = game.state; lives.textContent = "■".repeat(s.lives) + "□".repeat(Math.max(0, 5 - s.lives)); score.textContent = String(s.score).padStart(6, "0"); combo.textContent = s.combo > 1 ? `COMBO ×${s.combo}` : ""; wave.textContent = s.waveLabel; music.textContent = `MUSIQUE ${audio.isMusicEnabled() ? `${audio.musicVolumePercent()}%` : "OFF"} · ${audio.currentMusicTitle()} · F2/F3`; document.body.classList.toggle("error", s.errorFlash > 0); }
+function renderHud(): void { const s = game.state; lives.textContent = "■".repeat(s.lives) + "□".repeat(Math.max(0, 5 - s.lives)); score.textContent = String(s.score).padStart(6, "0"); combo.textContent = s.combo > 1 ? `COMBO ×${s.combo}` : ""; wave.textContent = s.waveLabel; music.textContent = `MUSIQUE ${audio.isMusicEnabled() ? `${audio.musicVolumePercent()}%` : "OFF"} · ${audio.currentMusicTitle()} · ${game.difficultyInfo().label} · F2/F3`; document.body.classList.toggle("error", s.errorFlash > 0); }
 interface ScoreBonus { label: string; points: number }
 interface BonusResult { items: ScoreBonus[]; total: number }
 function awardCurrentLevelBonuses(): BonusResult {
@@ -102,7 +108,7 @@ function renderDebug(): void {
   }).join("") || `<tr><td colspan="9">Aucune métrique de vague</td></tr>`;
   const currentDifficulty = waveInfo.get(s.waveIndex)?.difficulty ?? "-";
   const selectedLevel = game.selectedLevel();
-  debug.innerHTML = `<h3>DEBUG PLAYTEST <span>F10</span></h3><div class="debug-grid"><b>Level</b><span>${escapeHtml(selectedLevel.title)}</span><b>Theme</b><span>${escapeHtml(selectedLevel.theme.id)}</span><b>Env</b><span>${escapeHtml(selectedLevel.environment)}</span><b>Music</b><span>${escapeHtml(audio.currentMusicKey())}</span><b>Phase</b><span>${s.phase}</span><b>Wave</b><span>${s.waveIndex + 1}/${game.debugWaveCount()} ${escapeHtml(s.waveLabel || "-")}</span><b>Seed</b><span>${game.debugSeed()}</span><b>Diff</b><span>${currentDifficulty}</span><b>FPS</b><span>${Math.round(fps)}</span><b>Time</b><span>x${scale}</span><b>Score</b><span>${s.score}</span><b>Acc</b><span>${game.accuracy()}%</span><b>WPM</b><span>${game.wordsPerMinute()}</span></div><p>F5 nouvelle seed · F6 vague suivante · F7 boss · F8 vitesse · F9 nettoyer</p><table><thead><tr><th>ID</th><th>Type</th><th>Dist</th><th>Lane</th><th>Status</th><th>Mot</th><th>Prog</th></tr></thead><tbody>${rows}</tbody></table><h4>Métriques vagues</h4><table><thead><tr><th>#</th><th>Label</th><th>Diff</th><th>Temps</th><th>Keys</th><th>Acc</th><th>Err</th><th>Dmg</th><th>Kill</th></tr></thead><tbody>${metrics}</tbody></table>`;
+  debug.innerHTML = `<h3>DEBUG PLAYTEST <span>F10</span></h3><div class="debug-grid"><b>Level</b><span>${escapeHtml(selectedLevel.title)}</span><b>Theme</b><span>${escapeHtml(selectedLevel.theme.id)}</span><b>Env</b><span>${escapeHtml(selectedLevel.environment)}</span><b>Mode</b><span>${escapeHtml(game.difficultyInfo().label)} ×${game.difficultyInfo().speedMultiplier.toFixed(2)}</span><b>Music</b><span>${escapeHtml(audio.currentMusicKey())}</span><b>Phase</b><span>${s.phase}</span><b>Wave</b><span>${s.waveIndex + 1}/${game.debugWaveCount()} ${escapeHtml(s.waveLabel || "-")}</span><b>Seed</b><span>${game.debugSeed()}</span><b>Diff</b><span>${currentDifficulty}</span><b>FPS</b><span>${Math.round(fps)}</span><b>Time</b><span>x${scale}</span><b>Score</b><span>${s.score}</span><b>Acc</b><span>${game.accuracy()}%</span><b>WPM</b><span>${game.wordsPerMinute()}</span></div><p>F5 nouvelle seed · F6 vague suivante · F7 boss · F8 vitesse · F9 nettoyer</p><table><thead><tr><th>ID</th><th>Type</th><th>Dist</th><th>Lane</th><th>Status</th><th>Mot</th><th>Prog</th></tr></thead><tbody>${rows}</tbody></table><h4>Métriques vagues</h4><table><thead><tr><th>#</th><th>Label</th><th>Diff</th><th>Temps</th><th>Keys</th><th>Acc</th><th>Err</th><th>Dmg</th><th>Kill</th></tr></thead><tbody>${metrics}</tbody></table>`;
 }
 function handleDebugKey(event: KeyboardEvent): boolean {
   if (event.key === "F10") { event.preventDefault(); debugVisible = !debugVisible; renderDebug(); return true; }

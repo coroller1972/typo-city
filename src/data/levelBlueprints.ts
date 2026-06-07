@@ -69,11 +69,24 @@ export const levels: LevelBlueprint[] = [
       { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 47, lane: -.25, labelOffset: { x: -.04, y: .55 } },
       { archetype: "walker", pools: ["short", "medium"], wordCount: 1, distance: 60, lane: 1.95, labelOffset: { x: .08, y: .55 } },
     ] },
+    { label: "BOULEVARD DES OMBRES", travelMs: 1950, difficulty: { min: 42, max: 66 }, enemies: [
+      { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 34, lane: -1.75, labelOffset: { x: -.18, y: .24 }, labelScreenOffset: { x: -86, y: 14 } },
+      { archetype: "walker", pools: ["medium", "short"], wordCount: 1, distance: 43, lane: 1.55, labelOffset: { x: .1, y: .26 }, labelScreenOffset: { x: 82, y: 10 } },
+      { archetype: "brute", pools: ["medium", "long"], wordCount: 2, distance: 57, lane: -.2, labelOffset: { x: -1.05, y: .15 }, labelScreenOffset: { x: -44, y: -38 } },
+      { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 70, lane: 1.85, labelOffset: { x: 1.1, y: .2 }, labelScreenOffset: { x: 110, y: 24 } },
+      { archetype: "walker", pools: ["short", "medium"], wordCount: 1, distance: 83, lane: -1.35, labelOffset: { x: -1.2, y: .5 }, labelScreenOffset: { x: -74, y: 40 } },
+    ] },
     { label: "PLACE DU SILENCE", travelMs: 1800, difficulty: { min: 42, max: 58 }, enemies: [
       { archetype: "brute", pools: ["long", "medium"], wordCount: 2, distance: 45, lane: -.25, labelOffset: { x: 1.05, y: 0 }, labelScreenOffset: { x: 20, y: -48 } },
       { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 31, lane: -1.75, labelOffset: { x: -1.15, y: .15 }, labelScreenOffset: { x: -90, y: 14 } },
       { archetype: "walker", pools: ["medium", "short"], wordCount: 1, distance: 66, lane: 1.75, labelOffset: { x: 1.35, y: .75 }, labelScreenOffset: { x: 170, y: 30 } },
       { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 84, lane: -.85, labelOffset: { x: -1.25, y: .25 }, labelScreenOffset: { x: -45, y: 46 } },
+    ] },
+    { label: "PARVIS DES LANTERNES", travelMs: 2050, difficulty: { min: 54, max: 82 }, enemies: [
+      { archetype: "brute", pools: ["long"], wordCount: 2, distance: 40, lane: -.65, labelOffset: { x: -1.05, y: .08 }, labelScreenOffset: { x: -58, y: -42 } },
+      { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 32, lane: -1.9, labelOffset: { x: -1.08, y: .2 }, labelScreenOffset: { x: -112, y: 18 } },
+      { archetype: "walker", pools: ["medium", "short"], wordCount: 1, distance: 53, lane: 1.75, labelOffset: { x: 1.1, y: .35 }, labelScreenOffset: { x: 118, y: 18 } },
+      { archetype: "brute", pools: ["medium", "long"], wordCount: 2, distance: 72, lane: .45, labelOffset: { x: 1.08, y: .1 }, labelScreenOffset: { x: 76, y: -38 } },
     ] },
     { label: "LE TERMINUS", travelMs: 2200, difficulty: { min: 48, max: 68 }, enemies: [
       { archetype: "boss", pools: ["boss", "long"], wordCount: 4, distance: 20, lane: 0, labelOffset: { x: 0, y: .15 } },
@@ -109,6 +122,13 @@ export const levels: LevelBlueprint[] = [
       { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 49, lane: -.15, labelOffset: { x: -.06, y: .55 } },
       { archetype: "walker", pools: ["short"], wordCount: 1, distance: 58, lane: 1.95, labelOffset: { x: .08, y: .5 } },
     ] },
+    { label: "BILLETTERIE NOIRE", travelMs: 1450, difficulty: { min: 40, max: 62 }, enemies: [
+      { archetype: "walker", pools: ["medium", "short"], wordCount: 1, distance: 31, lane: -1.55, labelOffset: { x: -.1, y: .22 }, labelScreenOffset: { x: -70, y: 12 } },
+      { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 35, lane: 1.75, labelOffset: { x: .12, y: .22 }, labelScreenOffset: { x: 96, y: 12 } },
+      { archetype: "brute", pools: ["medium", "long"], wordCount: 2, distance: 52, lane: -.25, labelOffset: { x: -1.05, y: .18 }, labelScreenOffset: { x: -56, y: -36 } },
+      { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 67, lane: -1.85, labelOffset: { x: -1.08, y: .22 }, labelScreenOffset: { x: -90, y: 30 } },
+      { archetype: "walker", pools: ["short", "medium"], wordCount: 1, distance: 82, lane: 1.35, labelOffset: { x: 1.16, y: .45 }, labelScreenOffset: { x: 84, y: 36 } },
+    ] },
     { label: "COULOIR DE SERVICE", travelMs: 1500, difficulty: { min: 38, max: 55 }, enemies: [
       { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 28, lane: -1.85, labelOffset: { x: -.18, y: .2 }, labelScreenOffset: { x: -90, y: 18 } },
       { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 37, lane: 1.65, labelOffset: { x: .12, y: .24 }, labelScreenOffset: { x: 84, y: 12 } },
@@ -122,6 +142,14 @@ export const levels: LevelBlueprint[] = [
       { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 52, lane: 1.75, labelOffset: { x: 1.1, y: .2 }, labelScreenOffset: { x: 115, y: 18 } },
       { archetype: "brute", pools: ["medium", "long"], wordCount: 2, distance: 76, lane: .65, labelOffset: { x: 1.2, y: .15 }, labelScreenOffset: { x: 84, y: -36 } },
       { archetype: "walker", pools: ["medium"], wordCount: 1, distance: 92, lane: -1.65, labelOffset: { x: -1.25, y: .6 }, labelScreenOffset: { x: -82, y: 42 } },
+    ] },
+    { label: "VOIES SANS RETOUR", travelMs: 2050, difficulty: { min: 78, max: 112 }, enemies: [
+      { archetype: "brute", pools: ["long"], wordCount: 2, distance: 36, lane: -.55, labelOffset: { x: -1.08, y: .08 }, labelScreenOffset: { x: -64, y: -44 } },
+      { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 27, lane: -1.95, labelOffset: { x: -1.1, y: .18 }, labelScreenOffset: { x: -112, y: 16 } },
+      { archetype: "runner", pools: ["medium", "long"], wordCount: 1, distance: 44, lane: 1.85, labelOffset: { x: 1.1, y: .2 }, labelScreenOffset: { x: 112, y: 16 } },
+      { archetype: "brute", pools: ["medium", "long"], wordCount: 2, distance: 62, lane: .55, labelOffset: { x: 1.15, y: .12 }, labelScreenOffset: { x: 86, y: -38 } },
+      { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 78, lane: -1.15, labelOffset: { x: -1.16, y: .24 }, labelScreenOffset: { x: -74, y: 42 } },
+      { archetype: "walker", pools: ["medium"], wordCount: 1, distance: 94, lane: 1.35, labelOffset: { x: 1.18, y: .55 }, labelScreenOffset: { x: 92, y: 42 } },
     ] },
     { label: "DERNIER MÉTRO", travelMs: 2100, difficulty: { min: 62, max: 90 }, enemies: [
       { archetype: "boss", pools: ["boss", "long"], wordCount: 5, distance: 21, lane: 0, labelOffset: { x: 0, y: .15 } },
@@ -151,11 +179,18 @@ export const levels: LevelBlueprint[] = [
     streetLightIntensity: 13,
     exposure: 1.68,
   }, waves: [
-    { label: "ESCALIERS DE SECOURS", travelMs: 950, difficulty: { min: 30, max: 48 }, enemies: [
+    { label: "ESCALIERS DE SECOURS", travelMs: 950, difficulty: { min: 28, max: 48 }, enemies: [
       { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 27, lane: -1.65, labelOffset: { x: -.14, y: .22 }, labelScreenOffset: { x: -76, y: 16 } },
       { archetype: "walker", pools: ["short", "medium"], wordCount: 1, distance: 35, lane: 1.45, labelOffset: { x: .08, y: .22 }, labelScreenOffset: { x: 72, y: 8 } },
       { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 43, lane: -.15, labelOffset: { x: -.04, y: .52 } },
       { archetype: "walker", pools: ["short"], wordCount: 1, distance: 54, lane: 1.9, labelOffset: { x: .12, y: .5 } },
+    ] },
+    { label: "PASSERELLES HAUTES", travelMs: 1350, difficulty: { min: 44, max: 68 }, enemies: [
+      { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 25, lane: -1.8, labelOffset: { x: -.16, y: .2 }, labelScreenOffset: { x: -96, y: 14 } },
+      { archetype: "walker", pools: ["medium", "short"], wordCount: 1, distance: 33, lane: 1.55, labelOffset: { x: .1, y: .24 }, labelScreenOffset: { x: 84, y: 10 } },
+      { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 43, lane: .05, labelOffset: { x: .02, y: .52 } },
+      { archetype: "brute", pools: ["medium", "long"], wordCount: 2, distance: 59, lane: -.65, labelOffset: { x: -1.08, y: .12 }, labelScreenOffset: { x: -72, y: -38 } },
+      { archetype: "walker", pools: ["short", "medium"], wordCount: 1, distance: 75, lane: 1.9, labelOffset: { x: 1.12, y: .48 }, labelScreenOffset: { x: 104, y: 36 } },
     ] },
     { label: "TOITS AU NÉON", travelMs: 1300, difficulty: { min: 48, max: 70 }, enemies: [
       { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 26, lane: -1.85, labelOffset: { x: -.18, y: .2 }, labelScreenOffset: { x: -96, y: 16 } },
@@ -171,6 +206,14 @@ export const levels: LevelBlueprint[] = [
       { archetype: "brute", pools: ["medium", "long"], wordCount: 2, distance: 63, lane: .55, labelOffset: { x: 1.15, y: .12 }, labelScreenOffset: { x: 80, y: -38 } },
       { archetype: "walker", pools: ["medium"], wordCount: 1, distance: 80, lane: -1.55, labelOffset: { x: -1.22, y: .58 }, labelScreenOffset: { x: -82, y: 42 } },
       { archetype: "runner", pools: ["medium", "long"], wordCount: 1, distance: 92, lane: 1.35, labelOffset: { x: 1.16, y: .32 }, labelScreenOffset: { x: 92, y: 42 } },
+    ] },
+    { label: "ORAGE AU SOMMET", travelMs: 2150, difficulty: { min: 86, max: 124 }, enemies: [
+      { archetype: "brute", pools: ["long"], wordCount: 2, distance: 35, lane: -.75, labelOffset: { x: -1.1, y: .04 }, labelScreenOffset: { x: -76, y: -48 } },
+      { archetype: "runner", pools: ["medium", "long"], wordCount: 1, distance: 26, lane: -1.95, labelOffset: { x: -1.1, y: .16 }, labelScreenOffset: { x: -116, y: 14 } },
+      { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 39, lane: 1.9, labelOffset: { x: 1.1, y: .2 }, labelScreenOffset: { x: 112, y: 18 } },
+      { archetype: "brute", pools: ["medium", "long"], wordCount: 2, distance: 58, lane: .55, labelOffset: { x: 1.14, y: .1 }, labelScreenOffset: { x: 88, y: -38 } },
+      { archetype: "runner", pools: ["medium"], wordCount: 1, distance: 73, lane: -1.25, labelOffset: { x: -1.16, y: .24 }, labelScreenOffset: { x: -78, y: 42 } },
+      { archetype: "brute", pools: ["long"], wordCount: 2, distance: 92, lane: 1.1, labelOffset: { x: 1.18, y: .08 }, labelScreenOffset: { x: 102, y: -30 } },
     ] },
     { label: "COURONNE D'ORAGE", travelMs: 2050, difficulty: { min: 68, max: 104 }, enemies: [
       { archetype: "boss", pools: ["boss", "long"], wordCount: 6, distance: 20, lane: 0, labelOffset: { x: 0, y: .15 } },

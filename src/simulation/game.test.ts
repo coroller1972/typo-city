@@ -20,6 +20,26 @@ describe("typing simulation", () => {
   });
   it("breaks combo on typo", () => { const game = new TypingGame(wave()); game.start(); game.update(600); game.type("n"); expect(game.state.combo).toBe(1); expect(game.type("x")).toBe("error"); expect(game.state.combo).toBe(0); });
   it("damages the player when an enemy reaches them", () => { const game = new TypingGame(wave("rue", .1)); game.start(); game.update(600); game.update(100); expect(game.state.lives).toBe(4); });
+  it("keeps normal difficulty as the baseline zombie speed", () => {
+    const game = new TypingGame(wave("rue", 10));
+    game.setDifficulty("normal");
+    game.start(); game.update(600);
+    const before = game.state.enemies[0].distance;
+    game.update(1000);
+    expect(game.state.enemies[0].distance).toBeCloseTo(before - 1.45, 5);
+  });
+  it("changes zombie approach speed with difficulty mode", () => {
+    const easy = new TypingGame(wave("rue", 10));
+    const hard = new TypingGame(wave("rue", 10));
+    easy.setDifficulty("easy"); hard.setDifficulty("hard");
+    easy.start(); hard.start(); easy.update(600); hard.update(600);
+    const easyBefore = easy.state.enemies[0].distance;
+    const hardBefore = hard.state.enemies[0].distance;
+    easy.update(1000); hard.update(1000);
+    expect(easy.state.enemies[0].distance).toBeCloseTo(easyBefore - 1.45 * .78, 5);
+    expect(hard.state.enemies[0].distance).toBeCloseTo(hardBefore - 1.45 * 1.22, 5);
+    expect(hard.state.enemies[0].distance).toBeLessThan(easy.state.enemies[0].distance);
+  });
   it("stores the best score after victory", () => { const game = new TypingGame(wave("a")); game.start(); game.update(600); game.type("a"); game.update(16); game.update(600); expect(game.state.phase).toBe("victory"); expect(game.bestScore()).toBeGreaterThan(0); });
   it("generates deterministic valid levels from a seed", () => { const first = createLevel({ seed: 42 }); const second = createLevel({ seed: 42 }); const other = createLevel({ seed: 43 }); expect(first).toEqual(second); expect(first).not.toEqual(other); expect(() => validateLevel(first)).not.toThrow(); });
   it("keeps generated first initials distinct inside each wave", () => { const generated = createLevel({ seed: 7 }); for (const item of generated) expect(new Set(item.enemies.map((enemy) => normalizeKey(enemy.words[0][0]))).size).toBe(item.enemies.length); });

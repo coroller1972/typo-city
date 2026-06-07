@@ -3,6 +3,7 @@ export type GamePhase = "menu" | "playing" | "paused" | "victory" | "defeat";
 export type EnemyStatus = "approaching" | "targeted" | "attacking" | "defeated";
 export type InputFeedbackKind = "hit" | "kill" | "error";
 export type LevelEnvironment = "street" | "station" | "rooftop" | "arena";
+export type DifficultyMode = "easy" | "normal" | "hard" | "nightmare";
 export interface LevelTheme {
   id: string;
   background: number;
@@ -28,6 +29,6 @@ export interface LevelTheme {
   exposure: number;
 }
 export interface EnemyState { id: string; archetype: EnemyArchetype; words: string[]; activeWordIndex: number; typedLength: number; distance: number; status: EnemyStatus; lane: number; labelOffset?: { x: number; y: number }; labelScreenOffset?: { x: number; y: number }; }
-export interface GameState { phase: GamePhase; lives: number; score: number; combo: number; maxCombo: number; lockedEnemyId?: string; enemies: EnemyState[]; waveIndex: number; waveLabel: string; levelId: string; levelTitle: string; levelTheme: LevelTheme; levelEnvironment: LevelEnvironment; elapsedMs: number; totalKeys: number; correctKeys: number; errorFlash: number; }
+export interface GameState { phase: GamePhase; lives: number; score: number; combo: number; maxCombo: number; difficulty: DifficultyMode; lockedEnemyId?: string; enemies: EnemyState[]; waveIndex: number; waveLabel: string; levelId: string; levelTitle: string; levelTheme: LevelTheme; levelEnvironment: LevelEnvironment; elapsedMs: number; totalKeys: number; correctKeys: number; errorFlash: number; }
 export interface InputFeedback { kind: InputFeedbackKind; enemyId?: string; combo: number; wordComplete?: boolean; }
 export interface WaveDefinition { label: string; travelMs: number; enemies: Array<Omit<EnemyState, "id" | "status" | "typedLength" | "activeWordIndex">>; }
