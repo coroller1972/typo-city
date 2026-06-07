@@ -1,0 +1,23 @@
+{
+  "characters": [
+    "walker",
+    "runner",
+    "brute",
+    "boss"
+  ],
+  "environment": [
+    "city-kit"
+  ],
+  "textures": [
+    "asphalt",
+    "facade",
+    "cloth",
+    "skin",
+    "runner-skin",
+    "brute-skin",
+    "boss-skin",
+    "metal",
+    "stone"
+  ],
+  "generated": true
+}
