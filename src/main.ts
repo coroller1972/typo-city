@@ -16,11 +16,14 @@ let runStartLevelId = game.selectedLevel().id;
 let overlayAction: (() => void) | undefined;
 const awardedBonusLevelIds = new Set<string>();
 function menu(): void {
+  audio.setMusic("intro");
+  audio.startMusic();
   const levels = game.availableLevels();
   const levelButtons = levels.map((level, index) => `<button class="level-button" data-level="${level.id}"><span>Niveau ${index + 1}</span>${escapeHtml(level.title)}<small>${escapeHtml(level.subtitle)}</small></button>`).join("");
   const difficultyButtons = game.availableDifficulties().map((item) => `<button class="difficulty-button ${item.id === game.selectedDifficulty() ? "active" : ""}" data-difficulty="${item.id}"><span>${escapeHtml(item.label)}</span><small>vitesse ×${item.speedMultiplier.toFixed(2)}</small></button>`).join("");
   panel.innerHTML = `<p class="eyebrow">UNE NUIT. UN CLAVIER.</p><h1>TYPO <span>CITY</span></h1><p class="lead">Mode arcade: ${levels.length} niveaux enchaînés.<br>La ville a perdu sa voix. Il ne reste que vos mots.</p><div class="difficulty-select" id="difficulty-select">${difficultyButtons}</div><div class="menu-actions"><button id="arcade-start" class="primary-action">COMMENCER LA RUN</button><button id="level-toggle" class="secondary-action" aria-expanded="false">SÉLECTION DE NIVEAU</button></div><div class="level-select hidden" id="level-select">${levelButtons}</div><p class="record">RECORD LOCAL <b>${String(game.bestScore()).padStart(6, "0")}</b></p><p class="keys">Tapez les mots pour repousser les créatures · Échap pause · F2 mute · F3 volume · F10 debug</p>`;
   overlay.classList.remove("hidden");
+  panel.addEventListener("pointerdown", unlockMenuMusic, { once: true });
   document.querySelector("#arcade-start")!.addEventListener("click", () => start(levels[0]?.id));
   document.querySelector("#level-toggle")!.addEventListener("click", () => {
     const select = document.querySelector<HTMLElement>("#level-select")!, toggle = document.querySelector<HTMLButtonElement>("#level-toggle")!;
@@ -34,6 +37,12 @@ function menu(): void {
   }));
   document.querySelectorAll<HTMLButtonElement>(".level-button").forEach((button) => button.addEventListener("click", () => start(button.dataset.level)));
 }
+function unlockMenuMusic(): void {
+  if (game.state.phase !== "menu" || overlay.classList.contains("hidden")) return;
+  audio.unlock();
+  audio.setMusic("intro");
+  audio.startMusic();
+}
 function start(levelId: string | undefined = game.selectedLevel().id, options: StartOptions = {}, continueRun = false): void {
   overlayAction = undefined;
   const selectedLevelId = levelId ?? game.selectedLevel().id;
@@ -45,7 +54,18 @@ function result(): void {
   const won = game.state.phase === "victory"; const next = won ? nextLevel() : undefined;
   const bonus = won ? awardCurrentLevelBonuses() : emptyBonusResult();
   if (next) { intermission(next); return; }
-  panel.innerHTML = `<p class="eyebrow">${won ? "L'AUBE SE LÈVE" : "LA VILLE VOUS A DÉVORÉ"}</p><h2>${won ? "RUN TERMINÉE" : "PERDU DANS LA BRUME"}</h2><div class="stats"><div><small>SCORE</small><b>${game.state.score}</b></div><div><small>PRÉCISION</small><b>${game.accuracy()}%</b></div><div><small>VITESSE</small><b>${game.wordsPerMinute()} MPM</b></div><div><small>COMBO MAX</small><b>×${game.state.maxCombo}</b></div></div>${renderBonusList(bonus)}<p class="record">RECORD LOCAL <b>${String(game.bestScore()).padStart(6, "0")}</b></p><button id="start">REJOUER LA RUN</button>`; overlay.classList.remove("hidden"); document.querySelector("#start")!.addEventListener("click", () => start(runStartLevelId));
+  panel.innerHTML = `<p class="eyebrow">${won ? "L'AUBE SE LÈVE" : "LA VILLE VOUS A DÉVORÉ"}</p><h2>${won ? "RUN TERMINÉE" : "PERDU DANS LA BRUME"}</h2><div class="stats"><div><small>SCORE</small><b>${game.state.score}</b></div><div><small>PRÉCISION</small><b>${game.accuracy()}%</b></div><div><small>VITESSE</small><b>${game.wordsPerMinute()} MPM</b></div><div><small>COMBO MAX</small><b>×${game.state.maxCombo}</b></div></div>${renderBonusList(bonus)}<p class="record">RECORD LOCAL <b>${String(game.bestScore()).padStart(6, "0")}</b></p><div class="result-actions"><button id="start" class="primary-action">REJOUER LA RUN</button><button id="menu-return" class="secondary-action">MENU PRINCIPAL</button></div>`; overlay.classList.remove("hidden"); document.querySelector("#start")!.addEventListener("click", () => start(runStartLevelId)); document.querySelector("#menu-return")!.addEventListener("click", returnToMenu);
+}
+function returnToMenu(): void {
+  overlayAction = undefined;
+  const firstLevelId = game.availableLevels()[0]?.id ?? game.selectedLevel().id;
+  runStartLevelId = firstLevelId;
+  awardedBonusLevelIds.clear();
+  game.selectLevel(firstLevelId);
+  audio.setMusic("intro", { restart: true });
+  audio.startMusic();
+  hud.classList.add("hidden");
+  menu();
 }
 function intermission(next: ReturnType<TypingGame["selectedLevel"]>): void {
   const bonusLife = game.accuracy() >= 95 && game.state.lives < 5 ? 1 : 0;

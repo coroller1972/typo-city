@@ -6,7 +6,7 @@ export class ArcadeAudio {
   private readonly musicVolumes = [.18, .34, .55] as const;
   private musicLevel = 1;
   private muted = false;
-  private musicKey: MusicKey = "brumes";
+  private musicKey: MusicKey = "intro";
   constructor() {
     this.music.loop = true;
     this.setMusic(this.musicKey);
@@ -15,7 +15,7 @@ export class ArcadeAudio {
   }
   unlock(): void { this.context ??= new AudioContext(); void this.context.resume(); this.music.load(); }
   setMusic(key: MusicKey, options: { restart?: boolean } = {}): void {
-    const track = musicManifest[key] ?? musicManifest.brumes;
+    const track = musicManifest[key] ?? musicManifest.intro;
     const sameTrack = this.musicKey === key && this.music.src.endsWith(track.url);
     if (sameTrack) {
       if (options.restart) this.music.currentTime = 0;

@@ -26,6 +26,6 @@ export const textureManifest = {
 export type TextureKey = keyof typeof textureManifest;
 
 export const audioManifest = {
-  music: musicManifest.brumes.url,
+  music: musicManifest.intro.url,
   musicByLevel: musicManifest,
 } as const;
