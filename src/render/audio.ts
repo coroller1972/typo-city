@@ -3,7 +3,7 @@ import { musicManifest, type MusicKey } from "../data/music";
 export class ArcadeAudio {
   private context?: AudioContext;
   private readonly music = new Audio();
-  private readonly musicVolumes = [.18, .34, .55] as const;
+  private readonly musicVolumes = [.18, .34, .55, .78, 1] as const;
   private musicLevel = 1;
   private muted = false;
   private musicKey: MusicKey = "intro";
@@ -13,7 +13,7 @@ export class ArcadeAudio {
     this.applyMusicVolume();
     this.music.preload = "auto";
   }
-  unlock(): void { this.context ??= new AudioContext(); void this.context.resume(); this.music.load(); }
+  unlock(): void { this.context ??= new AudioContext(); void this.context.resume(); }
   setMusic(key: MusicKey, options: { restart?: boolean } = {}): void {
     const track = musicManifest[key] ?? musicManifest.intro;
     const sameTrack = this.musicKey === key && this.music.src.endsWith(track.url);
@@ -48,9 +48,7 @@ export class ArcadeAudio {
   }
   cycleMusicVolume(): number {
     this.musicLevel = (this.musicLevel + 1) % this.musicVolumes.length;
-    this.muted = false;
     this.applyMusicVolume();
-    if (this.context && this.music.paused) void this.music.play().catch((error) => console.warn("Music playback blocked", error));
     return this.musicVolumePercent();
   }
   isMusicEnabled(): boolean { return !this.muted; }

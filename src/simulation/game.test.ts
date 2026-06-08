@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { TypingGame } from "./game"; import { createLevel, validateLevel, waveDifficultyScore } from "./level"; import { normalizeKey, sameKey } from "./words"; import type { WaveDefinition } from "./types";
 import { levels } from "../data/levelBlueprints";
+import { wordPools } from "../data/wordPools";
 const wave = (word = "néon", distance = 10): WaveDefinition[] => [{ label: "TEST", travelMs: 0, enemies: [{ archetype: "walker", words: [word], distance, lane: 0 }] }];
 const store = new Map<string, string>();
 Object.defineProperty(globalThis, "localStorage", { value: { clear: () => store.clear(), getItem: (key: string) => store.get(key) ?? null, setItem: (key: string, value: string) => store.set(key, value) } });
@@ -43,6 +44,12 @@ describe("typing simulation", () => {
   it("stores the best score after victory", () => { const game = new TypingGame(wave("a")); game.start(); game.update(600); game.type("a"); game.update(16); game.update(600); expect(game.state.phase).toBe("victory"); expect(game.bestScore()).toBeGreaterThan(0); });
   it("generates deterministic valid levels from a seed", () => { const first = createLevel({ seed: 42 }); const second = createLevel({ seed: 42 }); const other = createLevel({ seed: 43 }); expect(first).toEqual(second); expect(first).not.toEqual(other); expect(() => validateLevel(first)).not.toThrow(); });
   it("keeps generated first initials distinct inside each wave", () => { const generated = createLevel({ seed: 7 }); for (const item of generated) expect(new Set(item.enemies.map((enemy) => normalizeKey(enemy.words[0][0]))).size).toBe(item.enemies.length); });
+  it("keeps word pools free of normalized duplicates inside each category", () => {
+    for (const words of Object.values(wordPools)) {
+      const normalized = words.map((word) => normalizeKey(word));
+      expect(new Set(normalized).size).toBe(normalized.length);
+    }
+  });
   it("keeps generated wave difficulty inside authored budgets", () => {
     for (const level of levels) {
       const budgets = Object.fromEntries(level.waves.map((wave) => [wave.label, [wave.difficulty.min, wave.difficulty.max] as [number, number]]));
@@ -64,7 +71,7 @@ describe("typing simulation", () => {
     expect(third.map((item) => item.label)).not.toEqual(second.map((item) => item.label));
     expect(second[second.length - 1]?.label).toBe("DERNIER MÉTRO");
     expect(third[third.length - 1]?.label).toBe("COURONNE D'ORAGE");
-    expect(final.map((item) => item.label)).toEqual(["LES DEUX COLOSSES", "ARMAGGEDON"]);
+    expect(final.map((item) => item.label)).toEqual(["LES DEUX COLOSSES", "GARDE DE CENDRES", "ARMAGGEDON"]);
   });
   it("regenerates wave content on each restart when using a factory", () => {
     let count = 0; const game = new TypingGame(() => wave(count++ === 0 ? "a" : "bus"));
@@ -159,9 +166,13 @@ describe("typing simulation", () => {
     expect(game.state.enemies).toHaveLength(2);
     expect(game.state.enemies.every((enemy) => enemy.archetype === "brute" && enemy.words.length === 3)).toBe(true);
     game.debugSkipWave();
+    expect(game.state.waveLabel).toBe("GARDE DE CENDRES");
+    expect(game.state.enemies).toHaveLength(3);
+    expect(game.state.enemies.every((enemy) => enemy.archetype === "brute" && enemy.words.length === 4)).toBe(true);
+    game.debugSkipWave();
     expect(game.state.waveLabel).toBe("ARMAGGEDON");
     expect(game.state.enemies).toHaveLength(2);
-    expect(game.state.enemies.every((enemy) => enemy.archetype === "boss" && enemy.words.length === 4)).toBe(true);
+    expect(game.state.enemies.every((enemy) => enemy.archetype === "boss" && enemy.words.length === 5)).toBe(true);
   });
   it("records per-wave tuning metrics", () => {
     const game = new TypingGame(wave("rue"));

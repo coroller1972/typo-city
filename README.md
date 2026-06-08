@@ -2,6 +2,8 @@
 
 Typo City est un jeu web arcade 3D de dactylographie, inspire par la boucle de gameplay de *The Typing of the Dead* sans reprendre ses personnages, decors ou assets. Le joueur traverse une ville retro-horreur low-poly en camera sur rails, verrouille les ennemis avec la premiere lettre de leur mot, puis les elimine en tapant rapidement des mots francais.
 
+jouer sur : https://typo-city.vercel.app
+
 ## Etat Du Projet
 
 Le projet contient actuellement une run arcade jouable avec plusieurs niveaux enchaines :

@@ -15,7 +15,24 @@ let lastPhase = game.state.phase, lastLives = game.state.lives, lastTime = perfo
 let runStartLevelId = game.selectedLevel().id;
 let overlayAction: (() => void) | undefined;
 const awardedBonusLevelIds = new Set<string>();
+function entryScreen(): void {
+  overlayAction = enterMainMenu;
+  hud.classList.add("hidden");
+  panel.classList.add("entry-panel");
+  panel.innerHTML = `<button id="enter-menu" class="primary-action">COMMENCER</button>`;
+  overlay.classList.remove("hidden");
+  document.querySelector("#enter-menu")!.addEventListener("click", enterMainMenu);
+}
+function enterMainMenu(): void {
+  overlayAction = undefined;
+  audio.unlock();
+  audio.setMusic("intro", { restart: true });
+  audio.startMusic();
+  menu();
+}
 function menu(): void {
+  overlayAction = undefined;
+  panel.classList.remove("entry-panel");
   audio.setMusic("intro");
   audio.startMusic();
   const levels = game.availableLevels();
@@ -147,4 +164,4 @@ function revealGameplay(): void {
 function escapeHtml(value: string): string { return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[char]!)); }
 window.addEventListener("keydown", (event) => { if (handleDebugKey(event)) return; if (event.key === "Enter" && overlayAction && !overlay.classList.contains("hidden")) { event.preventDefault(); overlayAction(); return; } if (event.key === "F2") { event.preventDefault(); audio.unlock(); audio.toggleMusic(); renderHud(); return; } if (event.key === "F3") { event.preventDefault(); audio.unlock(); audio.cycleMusicVolume(); renderHud(); return; } if (event.key === "Escape") { game.togglePause(); overlay.classList.toggle("hidden", game.state.phase !== "paused"); if (game.state.phase === "paused") panel.innerHTML = `<p class="eyebrow">PAUSE</p><h2>REPRENEZ VOTRE SOUFFLE</h2><p class="keys">Échap pour retourner dans la nuit · F2 mute · F3 volume</p>`; return; } const result = game.type(event.key); const feedback = game.consumeInputFeedback(); if (result !== "ignored") { audio.play(result === "error" ? "error" : result === "kill" ? "kill" : "hit"); if (feedback) world.registerInputFeedback(feedback); if (result !== "error") world.flash(result === "kill" ? "kill" : "hit"); } });
 function frame(now: number): void { const rawDelta = Math.min(50, now - lastTime); lastTime = now; fps = fps * .92 + 1000 / Math.max(1, rawDelta) * .08; const delta = rawDelta * timeScales[timeScaleIndex]; game.update(delta); if (game.state.lives < lastLives) audio.play("damage"); lastLives = game.state.lives; if (game.state.phase !== lastPhase && (game.state.phase === "victory" || game.state.phase === "defeat")) { audio.play(game.state.phase === "victory" ? "win" : "damage"); result(); } lastPhase = game.state.phase; world.update(game.state, delta); renderHud(); renderDebug(); requestAnimationFrame(frame); }
-menu(); requestAnimationFrame(frame);
+entryScreen(); requestAnimationFrame(frame);

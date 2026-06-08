@@ -219,7 +219,7 @@ export const levels: LevelBlueprint[] = [
       { archetype: "boss", pools: ["boss", "long"], wordCount: 6, distance: 20, lane: 0, labelOffset: { x: 0, y: .15 } },
     ] },
   ] },
-  { id: "armaggedon", title: "Armaggedon", subtitle: "Final boss: brutes jumelles puis double boss", briefing: "La rue s'ouvre en arène. Deux colosses gardent le seuil, puis la ville envoie ses derniers noms contre vous.", threat: "Final: 2 brutes à 3 mots, puis 2 boss à 4 mots", music: "armaggedon", environment: "arena", theme: {
+  { id: "armaggedon", title: "Armaggedon", subtitle: "Final boss: garde renforcée puis double boss", briefing: "La rue s'ouvre en arène. Les colosses gardent le seuil, puis la ville envoie ses derniers noms contre vous.", threat: "Final: brutes multiples, puis 2 boss à 5 mots", music: "armaggedon", environment: "arena", theme: {
     id: "armaggedon",
     background: 0x12070b,
     fog: 0x2b070c,
@@ -247,9 +247,14 @@ export const levels: LevelBlueprint[] = [
       { archetype: "brute", pools: ["long", "boss"], wordCount: 3, distance: 34, lane: -1.25, labelOffset: { x: -1.15, y: .05 }, labelScreenOffset: { x: -92, y: -38 } },
       { archetype: "brute", pools: ["long", "boss"], wordCount: 3, distance: 44, lane: 1.25, labelOffset: { x: 1.15, y: .05 }, labelScreenOffset: { x: 92, y: -38 } },
     ] },
-    { label: "ARMAGGEDON", travelMs: 2400, difficulty: { min: 96, max: 148 }, enemies: [
-      { archetype: "boss", pools: ["boss", "long"], wordCount: 4, distance: 23, lane: -1.25, labelOffset: { x: -1.05, y: .1 }, labelScreenOffset: { x: -130, y: -36 } },
-      { archetype: "boss", pools: ["boss", "long"], wordCount: 4, distance: 34, lane: 1.25, labelOffset: { x: 1.05, y: .1 }, labelScreenOffset: { x: 130, y: -36 } },
+    { label: "GARDE DE CENDRES", travelMs: 1800, difficulty: { min: 104, max: 168 }, enemies: [
+      { archetype: "brute", pools: ["long", "boss"], wordCount: 4, distance: 31, lane: -1.35, labelOffset: { x: -1.18, y: .08 }, labelScreenOffset: { x: -112, y: -42 } },
+      { archetype: "brute", pools: ["long", "boss"], wordCount: 4, distance: 42, lane: 0, labelOffset: { x: 0, y: .15 }, labelScreenOffset: { x: 0, y: -50 } },
+      { archetype: "brute", pools: ["long", "boss"], wordCount: 4, distance: 53, lane: 1.35, labelOffset: { x: 1.18, y: .08 }, labelScreenOffset: { x: 112, y: -42 } },
+    ] },
+    { label: "ARMAGGEDON", travelMs: 2400, difficulty: { min: 122, max: 176 }, enemies: [
+      { archetype: "boss", pools: ["boss", "long"], wordCount: 5, distance: 23, lane: -1.25, labelOffset: { x: -1.05, y: .1 }, labelScreenOffset: { x: -130, y: -36 } },
+      { archetype: "boss", pools: ["boss", "long"], wordCount: 5, distance: 34, lane: 1.25, labelOffset: { x: 1.05, y: .1 }, labelScreenOffset: { x: 130, y: -36 } },
     ] },
   ] },
 ];
