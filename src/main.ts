@@ -18,8 +18,9 @@ const awardedBonusLevelIds = new Set<string>();
 function entryScreen(): void {
   overlayAction = enterMainMenu;
   hud.classList.add("hidden");
+  overlay.classList.add("splash-overlay");
   panel.classList.add("entry-panel");
-  panel.innerHTML = `<button id="enter-menu" class="primary-action">COMMENCER</button>`;
+  panel.innerHTML = `<p class="eyebrow">UNE NUIT. UN CLAVIER.</p><h1>TYPO <span>CITY</span></h1><button id="enter-menu" class="primary-action">DÉMARRER</button>`;
   overlay.classList.remove("hidden");
   document.querySelector("#enter-menu")!.addEventListener("click", enterMainMenu);
 }
@@ -32,6 +33,7 @@ function enterMainMenu(): void {
 }
 function menu(): void {
   overlayAction = undefined;
+  overlay.classList.remove("splash-overlay");
   panel.classList.remove("entry-panel");
   audio.setMusic("intro");
   audio.startMusic();
