@@ -5,7 +5,7 @@ export const wordPools = {
     "toit", "rame", "voie", "dock", "cour", "abri", "ombre", "orage", "porte", "crâne",
     "mur", "clé", "sang", "cave", "tram", "borne", "ruine", "fosse", "croix", "piège",
     "rampe", "grue", "train", "urne", "banc", "sort", "vase", "poste", "sable", "givre",
-    "égout", "cœur", "trace", "tache", "vitre", "linge", "sueur", "béton", "flamme", "dalle",
+    "égout", "coeur", "trace", "tache", "vitre", "linge", "sueur", "béton", "flamme", "dalle",
   ],
   medium: [
     "néon", "danger", "métro", "spectre", "vitesse", "sirène", "passage", "caveau", "alarme", "verrou",
