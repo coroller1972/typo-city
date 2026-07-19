@@ -49,10 +49,63 @@ const texture = async (name, width, height, painter) => {
   await writeFile(`${out}/textures/${name}.png`, Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", header), chunk("IDAT", deflateSync(raw)), chunk("IEND", Buffer.alloc(0))]));
 };
 
+const normalPainter = (width, height, heightAt, strength = 2) => (x, y) => {
+  const left = heightAt((x - 1 + width) % width, y); const right = heightAt((x + 1) % width, y);
+  const up = heightAt(x, (y - 1 + height) % height); const down = heightAt(x, (y + 1) % height);
+  let nx = (left - right) * strength; let ny = (up - down) * strength; let nz = 1;
+  const length = Math.hypot(nx, ny, nz); nx /= length; ny /= length; nz /= length;
+  return [Math.round((nx * .5 + .5) * 255), Math.round((ny * .5 + .5) * 255), Math.round((nz * .5 + .5) * 255)];
+};
+const grey = (value) => { const byte = Math.max(0, Math.min(255, Math.round(value))); return [byte, byte, byte]; };
+const isBrickMortar = (x, y) => y % 12 < 2 || (x + (Math.floor(y / 12) % 2) * 8) % 22 < 2;
+const asphaltHeight = (x, y) => (x + y * 3) % 47 === 0 ? .18 : .58 + seeded(x, y, 3) * .2;
+const brickHeight = (x, y) => isBrickMortar(x, y) ? .16 : .68 + seeded(x, y, 5) * .18;
+const concreteHeight = (x, y) => x % 32 < 1 || y % 32 < 1 ? .24 : .56 + seeded(x, y, 31) * .18;
+const metalHeight = (x, y) => x % 16 < 1 ? .32 : .62 + seeded(x, y, 37) * .12;
+const tileHeight = (x, y) => x % 16 < 2 || y % 16 < 2 ? .2 : .7 + seeded(x, y, 41) * .1;
+const roofHeight = (x, y) => x % 16 < 1 ? .28 : .52 + seeded(x, y, 43) * .22;
+
 await texture("asphalt", 64, 64, (x, y) => {
-  const base = shade([47, 59, 82], .72 + seeded(x, y, 3) * .22); const crack = (x + y * 3) % 47 === 0;
+  const base = shade([48, 52, 61], .72 + seeded(x, y, 3) * .22); const crack = (x + y * 3) % 47 === 0;
   return crack ? shade(base, .48) : base;
 });
+await texture("asphalt-roughness", 64, 64, (x, y) => grey(205 + seeded(x, y, 47) * 38 - ((x + y * 3) % 47 === 0 ? 30 : 0)));
+await texture("asphalt-normal", 64, 64, normalPainter(64, 64, asphaltHeight, 1.8));
+await texture("brick", 64, 64, (x, y) => {
+  const mortar = isBrickMortar(x, y); const base = mortar ? [44, 46, 52] : shade([91, 76, 75], .75 + seeded(x, y, 5) * .24);
+  return (x * 3 + y * 5) % 83 === 0 ? shade(base, .58) : base;
+});
+await texture("brick-roughness", 64, 64, (x, y) => grey(isBrickMortar(x, y) ? 232 : 187 + seeded(x, y, 53) * 40));
+await texture("brick-normal", 64, 64, normalPainter(64, 64, brickHeight, 2.8));
+await texture("concrete", 64, 64, (x, y) => {
+  const seam = x % 32 < 1 || y % 32 < 1; const base = shade([112, 113, 116], .74 + seeded(x, y, 31) * .25);
+  return seam ? shade(base, .58) : ((x * 7 + y * 3) % 89 === 0 ? shade(base, .62) : base);
+});
+await texture("concrete-roughness", 64, 64, (x, y) => grey(190 + seeded(x, y, 59) * 48));
+await texture("concrete-normal", 64, 64, normalPainter(64, 64, concreteHeight, 1.9));
+await texture("painted-metal", 64, 64, (x, y) => {
+  const seam = x % 16 < 1; const rust = (x * 5 + y * 11) % 101 < 3; const base = shade([69, 82, 91], .76 + seeded(x, y, 37) * .22);
+  return seam ? shade(base, .55) : rust ? [96, 61, 43] : base;
+});
+await texture("painted-metal-roughness", 64, 64, (x, y) => grey((x * 5 + y * 11) % 101 < 3 ? 224 : 128 + seeded(x, y, 61) * 66));
+await texture("painted-metal-normal", 64, 64, normalPainter(64, 64, metalHeight, 1.7));
+await texture("glass", 64, 64, (x, y) => {
+  const reflection = x % 29 < 3 || (x + y) % 43 < 2; const dirt = seeded(x, y, 67) > .93;
+  return reflection ? [115, 159, 169, 232] : dirt ? [45, 58, 62, 205] : [54, 82, 91, 218];
+});
+await texture("glass-roughness", 64, 64, (x, y) => grey(54 + seeded(x, y, 71) * 78));
+await texture("tile", 64, 64, (x, y) => {
+  const grout = x % 16 < 2 || y % 16 < 2; const base = shade([139, 151, 146], .78 + seeded(x, y, 41) * .2);
+  return grout ? [51, 62, 61] : base;
+});
+await texture("tile-roughness", 64, 64, (x, y) => grey(x % 16 < 2 || y % 16 < 2 ? 220 : 125 + seeded(x, y, 73) * 58));
+await texture("tile-normal", 64, 64, normalPainter(64, 64, tileHeight, 2.4));
+await texture("roof", 64, 64, (x, y) => {
+  const seam = x % 16 < 1; const base = shade([60, 58, 68], .72 + seeded(x, y, 43) * .24);
+  return seam ? shade(base, .56) : ((x + y * 7) % 61 === 0 ? shade(base, 1.35) : base);
+});
+await texture("roof-roughness", 64, 64, (x, y) => grey(210 + seeded(x, y, 79) * 38));
+await texture("roof-normal", 64, 64, normalPainter(64, 64, roofHeight, 2));
 await texture("facade", 64, 64, (x, y) => {
   const mortar = y % 12 < 2 || (x + (Math.floor(y / 12) % 2) * 8) % 22 < 2; const base = mortar ? [32, 42, 67] : shade([55, 67, 96], .78 + seeded(x, y, 5) * .24);
   return x % 31 === 0 ? shade(base, .72) : base;
@@ -115,5 +168,5 @@ async function save(name, object, folder) {
 }
 for (const name of ["walker", "runner", "brute", "boss"]) await save(name, character(name), "characters");
 await save("city-kit", propKit(), "environment");
-await writeFile(`${out}/catalog.json`, JSON.stringify({ characters: ["walker", "runner", "brute", "boss"], environment: ["city-kit"], textures: ["asphalt", "facade", "cloth", "skin", "runner-skin", "brute-skin", "boss-skin", "metal", "stone"], generated: true }, null, 2));
+await writeFile(`${out}/catalog.json`, JSON.stringify({ characters: ["walker", "runner", "brute", "boss"], environment: ["city-kit"], textures: ["asphalt", "asphalt-roughness", "asphalt-normal", "brick", "brick-roughness", "brick-normal", "concrete", "concrete-roughness", "concrete-normal", "painted-metal", "painted-metal-roughness", "painted-metal-normal", "glass", "glass-roughness", "tile", "tile-roughness", "tile-normal", "roof", "roof-roughness", "roof-normal", "facade", "cloth", "skin", "runner-skin", "brute-skin", "boss-skin", "metal", "stone"], generated: true }, null, 2));
 console.log("Generated original low-poly GLB asset pack.");

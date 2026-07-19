@@ -3,6 +3,11 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { EnemyArchetype, EnemyState, GameState, InputFeedback, InputFeedbackKind, LevelEnvironment, LevelTheme } from "../simulation/types";
 import { assetManifest, textureManifest, type AssetKey, type TextureKey } from "./assets";
+import { applyEnvironmentTextures, applyEnvironmentTheme, createEnvironmentMaterials } from "./environmentMaterials";
+import { AtmosphereController } from "./atmosphere";
+import type { EnvironmentBuildResult } from "./environmentAssembler";
+import { buildArenaEnvironment, buildRooftopEnvironment, buildStationEnvironment } from "./levelEnvironments";
+import { buildStreetEnvironment } from "./streetEnvironment";
 type EnemyView = { group: THREE.Group; label: HTMLDivElement; pulse: number; archetype: EnemyArchetype; baseScale: number; labelHeight: number; hitMs: number; killMs: number; labelMs: number; labelKind?: InputFeedbackKind; impactLight: THREE.PointLight; mixer?: THREE.AnimationMixer };
 const zombieVariants: Partial<Record<EnemyArchetype, { material: string; scale: number; facing: number; labelHeight: number; speed: number; glow?: number }>> = {
   walker: { material: "Cartoon_zombie1_Bake", scale: 2.45, facing: Math.PI, labelHeight: 3.8, speed: .78, glow: .08 },
@@ -20,10 +25,12 @@ export class World {
   private readonly blueLight = new THREE.PointLight(0x36c7ff, 34, 48);
   private readonly loader = new GLTFLoader(); private readonly textureLoader = new THREE.TextureLoader(); private readonly models = new Map<AssetKey, THREE.Group>(); private readonly animations = new Map<AssetKey, THREE.AnimationClip[]>(); private readonly textures = new Map<TextureKey, THREE.Texture>();
   private readonly environmentRoot = new THREE.Group();
-  private readonly groundMaterial = new THREE.MeshStandardMaterial({ color: 0x1b2538, roughness: 1 });
-  private readonly buildingMaterial = new THREE.MeshStandardMaterial({ color: 0x27314a, roughness: .92 });
+  private readonly atmosphere = new AtmosphereController(this.scene);
+  private readonly environmentMaterials = createEnvironmentMaterials();
   private readonly streetLights: THREE.PointLight[] = [];
-  private readonly signMaterials: THREE.MeshBasicMaterial[] = [];
+  private readonly signMaterials: THREE.MeshStandardMaterial[] = [];
+  private readonly environmentOwnedMaterials: THREE.Material[] = [];
+  private readonly environmentGeometries: THREE.BufferGeometry[] = [];
   private readonly labelAnchor = new THREE.Vector3();
   private readonly enemyViews = new Map<string, EnemyView>(); private waveIndex = -1; private cameraTargetZ = 11;
   private readonly pendingFeedback = new Map<string, InputFeedback>();
@@ -41,6 +48,7 @@ export class World {
     if (state.levelTheme.id !== this.currentThemeId || environmentChanged) this.applyTheme(state.levelTheme);
     if (state.waveIndex !== this.waveIndex) { this.waveIndex = state.waveIndex; this.cameraTargetZ = 11 - Math.max(0, state.waveIndex) * 17; }
     this.camera.position.z += (this.cameraTargetZ - this.camera.position.z) * Math.min(1, deltaMs / 1100); this.camera.lookAt(0, 2, this.camera.position.z - 18); this.playerLight.position.set(0, 6.5, this.camera.position.z - 2);
+    this.atmosphere.update(this.camera, deltaMs, state.elapsedMs); this.animateEnvironmentLighting(state.elapsedMs);
     const active = new Set(state.enemies.map((enemy) => enemy.id));
     for (const [id, view] of this.enemyViews) if (!active.has(id)) {
       this.advanceFeedback(view, deltaMs);
@@ -182,12 +190,13 @@ export class World {
     this.placeKitProps(kit);
   }
   private async preloadTextures(): Promise<void> {
-    await Promise.all((Object.entries(textureManifest) as Array<[TextureKey, string]>).map(async ([key, url]) => {
+    await Promise.all((Object.entries(textureManifest) as Array<[TextureKey, { url: string; colorSpace: "srgb" | "linear" }]>).map(async ([key, asset]) => {
       try {
-        const texture = await this.textureLoader.loadAsync(url); texture.colorSpace = THREE.SRGBColorSpace; texture.magFilter = THREE.NearestFilter; texture.minFilter = THREE.NearestMipmapNearestFilter; texture.wrapS = texture.wrapT = THREE.RepeatWrapping; this.textures.set(key, texture);
+        const texture = await this.textureLoader.loadAsync(asset.url); texture.colorSpace = asset.colorSpace === "srgb" ? THREE.SRGBColorSpace : THREE.NoColorSpace; texture.magFilter = THREE.NearestFilter; texture.minFilter = THREE.NearestMipmapNearestFilter; texture.wrapS = texture.wrapT = THREE.RepeatWrapping; this.textures.set(key, texture);
       } catch { console.warn(`Texture fallback used for ${key}`); }
     }));
-    this.applyTexture(this.groundMaterial, "asphalt", 4, 24); this.applyTexture(this.buildingMaterial, "facade", 2, 3);
+    applyEnvironmentTextures(this.environmentMaterials, this.textures);
+    if (this.currentEnvironment) this.buildEnvironment(this.currentEnvironment);
     if (this.currentTheme) this.applyTheme(this.currentTheme);
   }
   private applyModelTextures(root: THREE.Group): void {
@@ -220,8 +229,7 @@ export class World {
     this.renderer.toneMappingExposure = theme.exposure;
     this.scene.background = new THREE.Color(theme.background);
     this.scene.fog = new THREE.Fog(theme.fog, theme.fogNear, theme.fogFar);
-    this.groundMaterial.color.setHex(theme.ground);
-    this.buildingMaterial.color.setHex(theme.buildings);
+    applyEnvironmentTheme(this.environmentMaterials, theme);
     this.ambientLight.color.setHex(theme.ambientLight);
     this.ambientLight.intensity = theme.ambientIntensity;
     this.hemisphereLight.color.setHex(theme.hemisphereSky);
@@ -237,7 +245,11 @@ export class World {
       light.color.setHex(index % 2 ? theme.neonPrimary : theme.neonSecondary);
       light.intensity = theme.streetLightIntensity;
     });
-    this.signMaterials.forEach((material, index) => material.color.setHex(index % 2 ? theme.signSecondary : theme.signPrimary));
+    this.signMaterials.forEach((material, index) => {
+      const color = index % 2 ? theme.signSecondary : theme.signPrimary;
+      material.color.setHex(color); material.emissive.setHex(color);
+    });
+    this.atmosphere.configure(this.currentEnvironment ?? "street", theme);
   }
   private buildEnvironment(environment: LevelEnvironment): void {
     this.clearEnvironment();
@@ -246,99 +258,51 @@ export class World {
     else if (environment === "rooftop") this.buildRooftop();
     else if (environment === "arena") this.buildArena();
     else this.buildStreet();
+    this.atmosphere.configure(environment, this.currentTheme);
     const kit = this.models.get("environment.city-kit"); if (kit) this.placeKitProps(kit);
   }
   private clearEnvironment(): void {
     for (const material of this.signMaterials) material.dispose();
-    this.streetLights.length = 0; this.signMaterials.length = 0;
+    for (const material of this.environmentOwnedMaterials) material.dispose();
+    for (const geometry of this.environmentGeometries) geometry.dispose();
+    this.streetLights.length = 0; this.signMaterials.length = 0; this.environmentOwnedMaterials.length = 0; this.environmentGeometries.length = 0;
     while (this.environmentRoot.children.length) this.environmentRoot.remove(this.environmentRoot.children[0]);
   }
   private buildStreet(): void {
-    this.addGround(30, 145, -52);
     this.neonLight.position.set(-7, 6, -20); this.blueLight.position.set(7, 5, -52);
-    for (let z = 0; z > -112; z -= 18) this.addStreetLight(z % 36 ? -5 : 5, 4.2, z, z % 36 ? 0x6fdfff : 0xff5a8d, 21);
-    for (let z = 8; z > -120; z -= 9) for (const side of [-1, 1]) {
-      const height = 8 + deterministic01(`street:${z}:${side}`) * 10;
-      this.addBuilding(side * 10, height / 2, z, 8, height, 7);
-      this.addSign(side * 5.95, 3.5, z, .15, 1.2, 2.5, z % 18 ? 0x35c8ff : 0xff2d72);
-    }
+    this.adoptEnvironment(buildStreetEnvironment(this.environmentRoot, this.environmentMaterials));
   }
   private buildStation(): void {
-    this.addGround(24, 145, -52);
     this.neonLight.position.set(-5.5, 4.2, -18); this.blueLight.position.set(5.5, 3.8, -54);
-    for (let z = 8; z > -120; z -= 12) {
-      this.addBuilding(-10.5, 3.2, z, 2.4, 6.4, 9.2);
-      this.addBuilding(10.5, 3.2, z, 2.4, 6.4, 9.2);
-      this.addBuilding(0, 6.7, z, 23.5, .45, 7.5);
-      this.addSign(-6.9, 2.45, z + 1.5, .12, .8, 2.2, 0xf3cf5a);
-      this.addSign(6.9, 2.45, z - 1.5, .12, .8, 2.2, 0x25f0d0);
-    }
-    for (const x of [-1.25, 1.25]) this.addBuilding(x, .08, -52, .18, .16, 138);
-    for (let z = 0; z > -112; z -= 16) this.addStreetLight(z % 32 ? -4.4 : 4.4, 3.2, z, z % 32 ? 0x25f0d0 : 0xf3cf5a, 18);
+    this.adoptEnvironment(buildStationEnvironment(this.environmentRoot, this.environmentMaterials));
   }
   private buildRooftop(): void {
-    this.addGround(20, 145, -52);
     this.neonLight.position.set(-6.8, 4.8, -18); this.blueLight.position.set(6.8, 5.2, -50);
-    for (const side of [-1, 1]) {
-      this.addBuilding(side * 6.8, .55, -52, .7, 1.1, 142);
-      for (let z = 5; z > -118; z -= 18) {
-        this.addBuilding(side * 15, 3.6, z, 8.5, 7.2 + deterministic01(`roof:${z}:${side}`) * 4.5, 8);
-        this.addSign(side * 7.4, 2.8, z - 3, .16, 1.1, 2.6, z % 36 ? 0xa45cff : 0xff8a2a);
-      }
-    }
-    for (let z = -4; z > -112; z -= 24) {
-      this.addAntenna(-3.5, z);
-      this.addAntenna(3.8, z - 8);
-      this.addStreetLight(z % 48 ? -4.9 : 4.9, 3.5, z, z % 48 ? 0xff8a2a : 0xa45cff, 17);
-    }
+    this.adoptEnvironment(buildRooftopEnvironment(this.environmentRoot, this.environmentMaterials));
   }
   private buildArena(): void {
-    this.addGround(34, 118, -44);
     this.neonLight.position.set(-8, 5.8, -18); this.blueLight.position.set(8, 5.4, -42);
-    for (const side of [-1, 1]) {
-      this.addBuilding(side * 14, 2.1, -44, 3.5, 4.2, 112);
-      for (let z = 2; z > -96; z -= 14) {
-        this.addBuilding(side * 9.6, 1.05, z, .7, 2.1, 5.8);
-        this.addSign(side * 8.75, 3.05, z - 2, .18, 1.8, 3.2, z % 28 ? 0xff2b22 : 0xffb000);
-      }
-    }
-    this.addBuilding(0, .35, -101, 30, .7, 2.4);
-    this.addBuilding(0, 4.4, -104, 15, 8.8, 3.2);
-    for (const x of [-5.8, 5.8]) this.addBuilding(x, 3.4, -100, 1.2, 6.8, 1.2);
-    for (const [x, z] of [[-5.5, -8], [5.5, -8], [-6.8, -32], [6.8, -32], [-5.2, -62], [5.2, -62]] as Array<[number, number]>) this.addStreetLight(x, 4.6, z, z % 24 ? 0xffb000 : 0xff2b22, 23);
+    this.adoptEnvironment(buildArenaEnvironment(this.environmentRoot, this.environmentMaterials));
+  }
+  private adoptEnvironment(environment: EnvironmentBuildResult): void {
+    this.streetLights.push(...environment.lights); this.signMaterials.push(...environment.signMaterials); this.environmentOwnedMaterials.push(...environment.ownedMaterials); this.environmentGeometries.push(...environment.geometries);
   }
   private placeKitProps(kit: THREE.Group): void {
     const environment = this.currentEnvironment ?? "street";
-    const positions: Array<[number, number, number]> = environment === "station"
-      ? [[-6.8, -18, .58], [6.8, -44, .58], [-6.9, -76, .58]]
-      : environment === "rooftop"
-        ? [[-7.6, -20, .5], [7.6, -48, .5], [-7.8, -82, .5]]
-        : environment === "arena"
-          ? [[-10.2, -22, .64], [10.2, -40, .64], [-10.5, -68, .64], [10.5, -86, .64]]
-          : [[-9, -13, .72], [9, -36, .72], [-9, -61, .72], [9, -84, .72]];
+    if (environment !== "street") return;
+    const positions: Array<[number, number, number]> = [[-9, -13, .72], [9, -36, .72], [-9, -61, .72], [9, -84, .72]];
     for (const [x, z, scale] of positions) { const prop = kit.clone(true); prop.position.set(x, 0, z); prop.scale.setScalar(scale); if (x > 0) prop.rotation.y = Math.PI; this.environmentRoot.add(prop); }
   }
-  private addGround(width: number, length: number, z: number): void {
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(width, length), this.groundMaterial); ground.rotation.x = -Math.PI / 2; ground.position.z = z; ground.receiveShadow = true; this.environmentRoot.add(ground);
-  }
-  private addBuilding(x: number, y: number, z: number, width: number, height: number, depth: number): void {
-    const building = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), this.buildingMaterial); building.position.set(x, y, z); building.castShadow = true; building.receiveShadow = true; this.environmentRoot.add(building);
-  }
-  private addSign(x: number, y: number, z: number, width: number, height: number, depth: number, color: number): void {
-    const signMaterial = new THREE.MeshBasicMaterial({ color }); this.signMaterials.push(signMaterial);
-    const sign = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), signMaterial); sign.position.set(x, y, z); this.environmentRoot.add(sign);
-  }
-  private addStreetLight(x: number, y: number, z: number, color: number, distance: number): void {
-    const streetLight = new THREE.PointLight(color, 8, distance, 1.7); streetLight.position.set(x, y, z); this.streetLights.push(streetLight); this.environmentRoot.add(streetLight);
-  }
-  private addAntenna(x: number, z: number): void {
-    this.addBuilding(x, 1.45, z, .18, 2.9, .18);
-    this.addBuilding(x, 2.85, z, 1.7, .12, .12);
+  private animateEnvironmentLighting(elapsedMs: number): void {
+    const theme = this.currentTheme; if (!theme) return;
+    this.streetLights.forEach((light, index) => {
+      const pulse = .88 + Math.sin(elapsedMs * .0017 + index * 1.73) * .1;
+      const flicker = index % 5 === 2 && Math.sin(elapsedMs * .013 + index) > .965 ? .38 : 1;
+      light.intensity = theme.streetLightIntensity * pulse * flicker;
+    });
+    this.signMaterials.forEach((material, index) => {
+      material.emissiveIntensity = .78 + Math.sin(elapsedMs * .00125 + index * 2.1) * .18;
+    });
   }
   private resize(): void { this.camera.aspect = innerWidth / innerHeight; this.camera.updateProjectionMatrix(); this.renderer.setSize(innerWidth, innerHeight); }
-}
-function deterministic01(key: string): number {
-  let hash = 2166136261;
-  for (let index = 0; index < key.length; index++) { hash ^= key.charCodeAt(index); hash = Math.imul(hash, 16777619); }
-  return (hash >>> 0) / 4294967295;
 }
